@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Role {
+  id    Int            @id @default(autoincrement())
+  name  String         @unique
+  users UsersOnRoles[]
+}
+
+model User {
+  id        String         @id
+  email     String         @unique
+  createdAt DateTime       @default(now())
+  gender    String?        @default("na")
+  phone     String?
+  photo     String?
+  updatedAt DateTime       @updatedAt
+  name      String
+  birthday  DateTime?
+  roles     UsersOnRoles[]
+  orders    Order[]
+  cart      Cart?
+  addresses   Address[]
+}
+
+model UsersOnRoles {
+  userId     String
+  roleId     Int
+  assignedAt DateTime @default(now())
+  role       Role     @relation(fields: [roleId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@id([userId, roleId])
+}
+
+model ProductPhoto {
+  id        Int     @id @default(autoincrement())
+  url       String
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model Product {
+  id          Int            @id @default(autoincrement())
+  name        String
+  description String
+  type        String
+  photos      ProductPhoto[]
+  status      Boolean        @default(true)
+  varieties   Variety[]
+  batches     Batch[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @default(now()) @updatedAt
+}
+
+model Batch {
+  id             Int      @id @default(autoincrement())
+  productId      Int
+  producerId     Int
+  initialWeight  Float
+  finalWeight    Float
+  roastedDate    DateTime
+  roastedType    String
+  aromaticNotes  String
+  expirationDate DateTime
+  purchasePrice  Float?
+
+  product  Product  @relation(fields: [productId], references: [id])
+  producer Producer @relation(fields: [producerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model Producer {
+  id      Int    @id @default(autoincrement())
+  name    String @unique
+  email   String @unique
+  phone   String @unique
+  country String
+  state   String
+  farm    String
+
+  batches Batch[]
+}
+
+model Variety {
+  id         Int           @id @default(autoincrement())
+  stock      Int
+  weight     Float
+  price      Float
+  productId  Int
+  product    Product       @relation(fields: [productId], references: [id])
+  orderItems OrderItem[]
+  cartItems  CartProduct[]
+}
+
+model Invoice {
+  id            Int      @id @default(autoincrement())
+  orderId       Int      @unique
+  transactionId String   @unique
+  bank          String
+  status        String
+  date          DateTime
+  amount        Float
+  order         Order    @relation(fields: [orderId], references: [id])
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  varietyId Int
+  orderId   Int
+  quantity  Int
+  variety   Variety @relation(fields: [varietyId], references: [id])
+  order     Order   @relation(fields: [orderId], references: [id])
+}
+
+model Order {
+  id           Int      @id @default(autoincrement())
+  userId       String
+  total        Float
+  status       String
+  createdAt   DateTime @default(now())
+
+  user    User        @relation(fields: [userId], references: [id])
+  items   OrderItem[]
+  invoice Invoice?
+
+  addressId    Int?
+  address      Address?    @relation(fields: [addressId], references: [id])
+}
+
+model CartProduct {
+  id        Int @id @default(autoincrement())
+  varietyId Int
+  cartId    Int
+  quantity  Int
+  variety Variety @relation(fields: [varietyId], references: [id])
+  cart    Cart    @relation(fields: [cartId], references: [id])
+}
+
+model Cart {
+  id     Int    @id @default(autoincrement())
+  userId String @unique
+  user  User    @relation(fields: [userId], references: [id])
+  items CartProduct[]
+}
+
+model Address{
+  id          Int      @id @default(autoincrement())
+  userId      String
+  address     String
+  city        String
+  country     String
+  postalCode  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  user User @relation(fields: [userId],references:[id])
+  orders Order[] 
+
+  @@unique ([userId,city,country,postalCode])
+}
